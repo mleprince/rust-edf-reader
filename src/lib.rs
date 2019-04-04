@@ -1,3 +1,9 @@
+/*!
+ * edf-reader parse metadata of EDF file and can read block of data from this EDF file
+ * spec of EDF format : https://www.edfplus.info/specs/edf.html
+ *
+ */
+
 extern crate chrono;
 extern crate positioned_io_preview;
 
@@ -11,6 +17,7 @@ use chrono::Utc;
 use parser::*;
 use positioned_io_preview::RandomAccessFile;
 use positioned_io_preview::ReadAt;
+use std::mem::transmute;
 use std::path::Path;
 
 const EDF_HEADER_BYTE_SIZE: usize = 256;
@@ -19,15 +26,15 @@ const EDF_HEADER_BYTE_SIZE: usize = 256;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EDFChannel {
-    pub label: String,                           // 16 ascii
-    pub transducter_type: String,                // 80 ascii
-    pub physical_dimension: String,              // 8 ascii
-    pub physical_minimum: f32,                   // 8 ascii
-    pub physical_maximum: f32,                   // 8 ascii
-    pub digital_minimum: i64,                    // 8 ascii
-    pub digital_maximum: i64,                    // 8 ascii
-    pub prefiltering: String,                    // 80 ascii
-    pub number_of_samples_in_data_record: usize, // 8 ascii
+    pub label: String,                         // 16 ascii
+    pub transducter_type: String,              // 80 ascii
+    pub physical_dimension: String,            // 8 ascii
+    pub physical_minimum: f32,                 // 8 ascii
+    pub physical_maximum: f32,                 // 8 ascii
+    pub digital_minimum: i64,                  // 8 ascii
+    pub digital_maximum: i64,                  // 8 ascii
+    pub prefiltering: String,                  // 80 ascii
+    pub number_of_samples_in_data_record: u64, // 8 ascii
     pub scale_factor: f32,
 }
 
@@ -59,7 +66,7 @@ pub struct EDFReader<T: ReadAt> {
 
 impl EDFReader<RandomAccessFile> {
     /**
-     * Init an EDFReader with the path of a local file
+     Init an EDFReader with the path of a local file
      */
     pub fn init<P: AsRef<Path>>(
         file_path: P,
@@ -70,9 +77,11 @@ impl EDFReader<RandomAccessFile> {
 }
 
 impl<T: ReadAt> EDFReader<T> {
+
     /**
-     * Init an EDFReader with a custom FileReader.  
-     * It can be usefull if the EDF file is not located in the system file.
+     Init an EDFReader with a custom FileReader.  
+     It can be usefull if the EDF file is not located in the system file. (ie : we cannot use RandomAccessFile).
+     An example of use : read the file with DOM FileAPI in Webassembly
      */
     pub fn init_with_file_reader(file_reader: T) -> Result<EDFReader<T>, std::io::Error> {
         let general_header_raw =
@@ -104,35 +113,79 @@ impl<T: ReadAt> EDFReader<T> {
 
     pub fn read_data_window(
         &self,
-        start_time: u64, // in mS
-        duration: u64,   // in mS
+        start_time_ms: u64, // in mS
+        duration_ms: u64,   // in mS
     ) -> Result<Vec<Vec<f32>>, String> {
-        self.check_bounds(start_time, duration)?;
+        self.check_bounds(start_time_ms, duration_ms)?;
 
         // calculate the corresponding blocks to get
 
-        // let firstBlockStartTime = start_time - start_time % self.edf_header.block_duration;
+        let first_block_start_time = start_time_ms - start_time_ms % self.edf_header.block_duration;
 
-        // let firstBlockIndex = firstBlockStartTime / self.edf_header.block_duration;
+        let first_block_index = first_block_start_time / self.edf_header.block_duration;
 
-        // let numberOfBlocksToGet = Math.ceil(duration / self.edf_header.block_duration);
+        let number_of_blocks_to_get =
+            (duration_ms as f64 / self.edf_header.block_duration as f64).ceil() as u64;
 
-        // let lastBlockEndTime = (firstBlockIndex + numberOfBlocksToGet) * this.header.block_duration;
+        let offset =
+            self.edf_header.byte_size_header + first_block_index * self.get_size_of_data_block();
 
-        // let offsetInFile = this.header.byteSizeHeader + firstBlockIndex * this.getSizeOfDataBlock();
+        let mut data =
+            vec![0u8; (number_of_blocks_to_get * self.get_size_of_data_block()) as usize];
 
-        // let lastOffsetInFile = offsetInFile + numberOfBlocksToGet * this.getSizeOfDataBlock();
+        // TODO : better handle of errors
+        if let Err(e) = self.file_reader.read_exact_at(offset, &mut data[..]) {
+            return Err(String::from("failed to read data : ") + &e.to_string());
+        }
 
-        Ok(Vec::new())
+        let mut result: Vec<Vec<f32>> = Vec::new();
+
+        for _ in 0..self.edf_header.number_of_signals {
+            result.push(Vec::new());
+        }
+
+        let mut index = 0;
+
+        for _ in 0..number_of_blocks_to_get {
+            for (j, channel) in self.edf_header.channels.iter().enumerate() {
+                for _ in 0..channel.number_of_samples_in_data_record {
+                    let sample = get_sample(&data, index) as f32;
+                    result[j].push(
+                        (sample - channel.digital_minimum as f32) * channel.scale_factor
+                            + channel.physical_minimum,
+                    );
+                    index += 1;
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
+    fn get_size_of_data_block(&self) -> u64 {
+        self.edf_header
+            .channels
+            .iter()
+            .map(|channel| channel.number_of_samples_in_data_record * 2)
+            .sum()
     }
 
     fn check_bounds(&self, start_time: u64, duration: u64) -> Result<(), String> {
-        Ok(())
+        if start_time + duration > self.edf_header.block_duration * self.edf_header.number_of_blocks
+        {
+            return Err(String::from("Window is out of bounds"));
+        } else {
+            Ok(())
+        }
     }
 }
 
+fn get_sample(data: &Vec<u8>, index: usize) -> i16 {
+    unsafe { transmute::<[u8; 2], i16>([data[2 * index].to_le(), data[2 * index + 1].to_le()]) }
+}
+
 impl EDFHeader {
-    pub fn build_general_header(data: Vec<u8>) -> EDFHeader {
+    fn build_general_header(data: Vec<u8>) -> EDFHeader {
         let mut parser: Parser = Parser::new(data);
 
         let mut edf_header = EDFHeader {
@@ -178,8 +231,8 @@ impl EDFHeader {
                 physical_dimension: physical_dimension_list[v].clone(),
                 physical_minimum: physical_minimum_list[v],
                 physical_maximum: physical_maximum_list[v],
-                digital_minimum: digital_minimum_list[v],
-                digital_maximum: digital_maximum_list[v],
+                digital_minimum: digital_minimum_list[v] as i64,
+                digital_maximum: digital_maximum_list[v] as i64,
                 prefiltering: prefiltering_list[v].clone(),
                 number_of_samples_in_data_record: number_of_samples_in_data_record_list[v],
                 scale_factor: (physical_maximum_list[v] - physical_minimum_list[v])
@@ -206,4 +259,30 @@ impl EDFHeader {
             self.record_start_time_in_ms = date.timestamp_millis();
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn convert_byte_array_to_u16() {
+        /**
+        Javascript code to retreive the same results :
+
+        const buffer = new ArrayBuffer(2*2);
+
+        let view = new DataView(buffer);
+
+        view.setInt16(0, 456,true);
+        view.setInt16(2, -4564,true);
+
+        console.log(new Uint8Array(buffer));  ==> Uint8Array [ 200, 1, 44, 238 ]
+        */
+
+        assert_eq!(456, get_sample(&vec![200, 1], 0));
+        assert_eq!(-4564, get_sample(&vec![44, 238], 0));
+    }
+
 }

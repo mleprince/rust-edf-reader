@@ -1,6 +1,6 @@
 [package]
 name = "edf-reader"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Maxime Leprince <maxime.leprince@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -10,3 +10,6 @@ chrono = "0.4.6"
 serde = "1.0.89"
 serde_derive = "1.0.89"
 positioned-io-preview = "0.3.3"
+
+[dev-dependencies]
+assert_approx_eq = "1.1.0"

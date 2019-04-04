@@ -1,5 +1,6 @@
 [package]
 name = "edf-reader"
+description= "A library for reading metadata and data from an EDF (European Data Format) file."
 version = "0.2.0"
 authors = ["Maxime Leprince <maxime.leprince@gmail.com>"]
 edition = "2018"

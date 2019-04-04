@@ -1,5 +1,5 @@
 [package]
-name = "edf-reader"
+name = "rust-edf"
 version = "0.1.0"
 authors = ["Maxime Leprince <maxime.leprince@bioserenity.com>"]
 edition = "2018"

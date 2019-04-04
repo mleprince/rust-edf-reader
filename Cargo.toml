@@ -1,9 +1,9 @@
 [package]
 name = "rust-edf"
 version = "0.1.0"
-authors = ["Maxime Leprince <maxime.leprince@bioserenity.com>"]
+authors = ["Maxime Leprince <maxime.leprince@gmail.com>"]
 edition = "2018"
-license = "MIT/Apache-2.0"
+license = "MIT"
 
 [dependencies]
 chrono = "0.4.6"

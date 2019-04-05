@@ -5,6 +5,7 @@ version = "0.2.0"
 authors = ["Maxime Leprince <maxime.leprince@gmail.com>"]
 edition = "2018"
 license = "MIT"
+repository = "https://github.com/mleprince/rust-edf"
 
 [dependencies]
 chrono = "0.4.6"

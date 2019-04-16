@@ -12,6 +12,7 @@ chrono = "0.4.6"
 serde = "1.0.89"
 serde_derive = "1.0.89"
 positioned-io-preview = "0.3.3"
+futures = "0.1.26"
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"

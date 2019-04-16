@@ -3,3 +3,4 @@ A library written in Rust for reading EDF file
 
 [![](https://img.shields.io/crates/v/edf-reader.svg)](https://crates.io/crates/edf-reader)
 [![](https://docs.rs/edf-reader/badge.svg)](https://docs.rs/edf-reader)
+[![](https://travis-ci.org/mleprince/rust-edf.svg?branch=master)](https://travis-ci.org/mleprince/rust-edf)

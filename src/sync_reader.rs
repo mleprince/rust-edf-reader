@@ -1,25 +1,14 @@
 //! Read an EDF file synchronously
 
-use crate::file_reader::{LocalFileReader, SyncFileReader};
+use crate::file_reader::SyncFileReader;
 
 use crate::model::*;
-use std::path::Path;
 
 use std::io::Error;
 
 pub struct SyncEDFReader<T: SyncFileReader> {
     pub edf_header: EDFHeader,
     file_reader: T,
-}
-
-impl SyncEDFReader<LocalFileReader> {
-    /**
-    Init an EDFReader with the path of a local file
-    */
-    pub fn init<P: AsRef<Path>>(file_path: P) -> Result<Self, std::io::Error> {
-        let file_reader = LocalFileReader::init(file_path)?;
-        SyncEDFReader::init_with_file_reader(file_reader)
-    }
 }
 
 impl<T: SyncFileReader> SyncEDFReader<T> {
@@ -51,7 +40,7 @@ impl<T: SyncFileReader> SyncEDFReader<T> {
         start_time_ms: u64, // in mS
         duration_ms: u64,   // in mS
     ) -> Result<Vec<Vec<f32>>, Error> {
-        super::check_bounds(start_time_ms, duration_ms,&self.edf_header)?;
+        super::check_bounds(start_time_ms, duration_ms, &self.edf_header)?;
 
         // calculate the corresponding blocks to get
 

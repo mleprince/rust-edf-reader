@@ -1,29 +1,17 @@
 //! Read an EDF file asynhronously (with futures)
 
 use std::sync::Arc;
-use crate::file_reader::{AsyncFileReader, LocalFileReader};
+use crate::file_reader::AsyncFileReader;
 use crate::model::{EDFHeader, EDF_HEADER_BYTE_SIZE};
 
 use futures::future::{err};
 use futures::Future;
 use std::io::Error;
-use std::path::Path;
+
 
 pub struct AsyncEDFReader<T: AsyncFileReader> {
     pub edf_header: Arc<EDFHeader>,
     file_reader: T,
-}
-
-impl AsyncEDFReader<LocalFileReader> {
-    /**
-    Init an EDFReader with the path of a local file
-    */
-    pub fn init<P: AsRef<Path>>(file_path: P) -> Box<Future<Item = Self, Error = std::io::Error>> {
-        match LocalFileReader::init(file_path) {
-            Ok(file_reader) => Box::new(AsyncEDFReader::init_with_file_reader(file_reader)),
-            Err(e) => Box::new(err::<Self, std::io::Error>(e)),
-        }
-    }
 }
 
 impl<T: 'static + AsyncFileReader> AsyncEDFReader<T> {

@@ -1,10 +1,10 @@
 //! Contains traits/implementations for reading a file in a sync or async manner.
 
+use std::fs::File;
 use futures::future::{err, ok};
 use futures::Future;
-use positioned_io_preview::RandomAccessFile;
-use positioned_io_preview::ReadAt;
 use std::path::Path;
+use positioned_io::ReadAt;
 
 
 /**
@@ -29,7 +29,7 @@ pub trait AsyncFileReader {
  * A FileReader for reading local files in blocking or non-blocking way
  */
 pub struct LocalFileReader {
-    random_access_file: RandomAccessFile,
+    random_access_file: File,
 }
 
 impl LocalFileReader {
@@ -37,7 +37,7 @@ impl LocalFileReader {
      * Init the fileReader with the path of a local file
      */
     pub fn init<P: AsRef<Path>>(file_path: P) -> Result<LocalFileReader, std::io::Error> {
-        let file = RandomAccessFile::open(file_path)?;
+        let file = File::open(file_path)?;
         Ok(LocalFileReader {
             random_access_file: file,
         })

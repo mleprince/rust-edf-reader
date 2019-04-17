@@ -11,7 +11,7 @@ repository = "https://github.com/mleprince/rust-edf"
 chrono = "0.4.6"
 serde = "1.0.89"
 serde_derive = "1.0.89"
-positioned-io-preview = "0.3.3"
+positioned-io = "0.2.2"
 futures = "0.1.26"
 
 [dev-dependencies]

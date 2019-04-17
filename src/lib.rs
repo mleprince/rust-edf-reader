@@ -6,7 +6,7 @@
 
 extern crate chrono;
 extern crate futures;
-extern crate positioned_io_preview;
+extern crate positioned_io;
 
 #[macro_use]
 extern crate serde_derive;

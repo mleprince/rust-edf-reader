@@ -55,7 +55,7 @@ impl Parser {
     fn string_to_number<T: FromStr>(string: String) -> T {
         match string.parse::<T>() {
             Ok(number) => number,
-            Err(e) => panic!("Invalid number : '{}'", string),
+            Err(_) => panic!("Invalid number : '{}'", string),
         }
     }
 

@@ -1,16 +1,14 @@
 //! Read an EDF file asynhronously (with futures)
 
-use std::sync::Arc;
 use crate::file_reader::AsyncFileReader;
 use crate::model::{EDFHeader, EDF_HEADER_BYTE_SIZE};
 
-use futures::future::{err};
+use futures::future::err;
 use futures::Future;
 use std::io::Error;
 
-
 pub struct AsyncEDFReader<T: AsyncFileReader> {
-    pub edf_header: Arc<EDFHeader>,
+    pub edf_header: EDFHeader,
     file_reader: T,
 }
 
@@ -38,7 +36,7 @@ impl<T: 'static + AsyncFileReader> AsyncEDFReader<T> {
                             edf_header.build_channel_headers(channel_headers_raw);
 
                             AsyncEDFReader {
-                                edf_header : Arc::new(edf_header),
+                                edf_header: edf_header,
                                 file_reader,
                             }
                         })
@@ -102,7 +100,7 @@ impl<T: 'static + AsyncFileReader> AsyncEDFReader<T> {
                     }
 
                     result
-                })
+                }),
         )
     }
 }

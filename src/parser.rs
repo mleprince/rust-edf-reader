@@ -47,7 +47,16 @@ impl Parser {
         self.check_capacity(field_length);
 
         let string = self.parse_string(field_length);
-        string.parse::<T>().unwrap()
+
+        Parser::string_to_number(string)
+    }
+
+    //TODO : improve the error message
+    fn string_to_number<T: FromStr>(string: String) -> T {
+        match string.parse::<T>() {
+            Ok(number) => number,
+            Err(e) => panic!("Invalid number : '{}'", string),
+        }
     }
 
     pub fn parse_string_list(&mut self, list_size: u64, field_length: usize) -> Vec<String> {
@@ -63,7 +72,7 @@ impl Parser {
     {
         self.parse_string_list(list_size, field_length)
             .into_iter()
-            .map(|v| v.parse::<T>().unwrap())
+            .map(|v| Parser::string_to_number(v))
             .collect()
     }
 }
